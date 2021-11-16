@@ -64,6 +64,7 @@ target_include_directories(
   libtorchaudio
   PRIVATE
   ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/third_party/sentencepiece/src
   )
 
 target_link_libraries(
