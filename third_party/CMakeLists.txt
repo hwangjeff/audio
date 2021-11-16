@@ -25,7 +25,7 @@ endif()
 # sentencepiece
 ################################################################################
 if (BUILD_SENTENCEPIECE)
-  set(SPM_ENABLE_SHARED, OFF)
+  set(SPM_ENABLE_SHARED OFF)
   add_subdirectory(sentencepiece)
   list(APPEND TORCHAUDIO_THIRD_PARTIES sentencepiece-static)
 endif()
