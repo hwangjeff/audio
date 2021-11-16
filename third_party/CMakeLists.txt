@@ -21,4 +21,13 @@ if (BUILD_KALDI)
   list(APPEND TORCHAUDIO_THIRD_PARTIES kaldi)
 endif()
 
+################################################################################
+# sentencepiece
+################################################################################
+if (BUILD_SENTENCEPIECE)
+  set(SPM_ENABLE_SHARED, OFF)
+  add_subdirectory(sentencepiece)
+  list(APPEND TORCHAUDIO_THIRD_PARTIES sentencepiece-static)
+endif()
+
 set_property(GLOBAL PROPERTY TORCHAUDIO_THIRD_PARTIES "${TORCHAUDIO_THIRD_PARTIES}")

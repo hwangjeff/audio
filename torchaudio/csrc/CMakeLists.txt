@@ -37,6 +37,10 @@ if(BUILD_KALDI)
   list(APPEND LIBTORCHAUDIO_SOURCES kaldi.cpp)
 endif()
 
+if(BUILD_SENTENCEPIECE)
+  list(APPEND LIBTORCHAUDIO_SOURCES sentencepiece.cpp)
+endif()
+
 if(BUILD_SOX)
   list(
     APPEND
@@ -74,6 +78,10 @@ endif()
 
 if (BUILD_KALDI)
   target_compile_definitions(libtorchaudio PUBLIC INCLUDE_KALDI)
+endif()
+
+if (BUILD_SENTENCEPIECE)
+  target_compile_definitions(libtorchaudio PUBLIC INCLUDE_SENTENCEPIECE)
 endif()
 
 if(USE_CUDA)

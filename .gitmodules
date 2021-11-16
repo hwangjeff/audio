@@ -2,3 +2,7 @@
 	path = third_party/kaldi/submodule
 	url = https://github.com/kaldi-asr/kaldi
 	ignore = dirty
+
+[submodule "sentencepiece"]
+	path = third_party/sentencepiece
+	url = https://github.com/google/sentencepiece
