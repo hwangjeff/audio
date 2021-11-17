@@ -6,8 +6,10 @@
 namespace torchaudio {
 namespace sentencepiece {
 
-struct _SentencePieceProcessor : torch::CustomClassHolder {
+struct SentencePieceProcessor : torch::CustomClassHolder {
   ::sentencepiece::SentencePieceProcessor processor_;
+
+  SentencePieceProcessor() {}
 
   std::string DecodePieces(const std::vector<std::string>& pieces) const {
     return processor_.DecodePieces(pieces);
@@ -18,11 +20,28 @@ struct _SentencePieceProcessor : torch::CustomClassHolder {
   }
 };
 
-TORCH_LIBRARY(torchaudio, m) {
-  m.class_<_SentencePieceProcessor>("SentencePieceProcessor")
-      .def("DecodePieces", &_SentencePieceProcessor::DecodePieces)
-    .def("Load", &_SentencePieceProcessor::Load);
-  
+TORCH_LIBRARY_FRAGMENT(torchaudio, m) {
+  m.class_<SentencePieceProcessor>("SentencePieceProcessor")
+      .def(torch::init())
+      .def("DecodePieces", &SentencePieceProcessor::DecodePieces)
+      .def("Load", &SentencePieceProcessor::Load)
+      .def_pickle(
+          // __getstate__
+          [](const c10::intrusive_ptr<SentencePieceProcessor> &self) -> torch::Tensor {
+            auto serialized_model = self->processor_.serialized_model_proto();
+            auto *data =
+                static_cast<void *>(const_cast<char *>(serialized_model.data()));
+            auto numel = static_cast<int64_t>(serialized_model.size());
+            return torch::from_blob(data, {numel}, {torch::kUInt8}).clone();
+          },
+          // __setstate__
+          [](torch::Tensor state) -> c10::intrusive_ptr<SentencePieceProcessor> {
+            auto *data = static_cast<char *>(state.data_ptr());
+            auto numel = state.size(0);
+            auto processor = c10::make_intrusive<SentencePieceProcessor>();
+            processor->processor_.LoadFromSerializedProto(std::string(data, numel));
+            return processor;
+          });
 }
 
 } // namespace sentencepiece
