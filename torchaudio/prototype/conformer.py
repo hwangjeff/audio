@@ -210,7 +210,7 @@ class Conv1dSubsampler(torch.nn.Module):
         out = lengths
         for _ in range(self.num_layers):
             out = ((out.float() - 1) / 2 + 1).floor().long()
-        return out
+        return out.to(torch.int32)
 
     def forward(
         self, input: torch.Tensor, lengths: torch.Tensor
@@ -306,5 +306,5 @@ class Conformer(torch.nn.Module):
 
         for layer in self.conformer_layers:
             x = layer(x, encoder_padding_mask)
-
-        return x, lengths
+        # T, B, C
+        return x.transpose(1, 0), lengths
