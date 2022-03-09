@@ -315,8 +315,8 @@ class RNNTBeamSearch(torch.nn.Module):
     @torch.jit.export
     def infer(
         self,
-        input: torch.Tensor,
-        length: torch.Tensor,
+        all_inputs: torch.Tensor,
+        all_lengths: torch.Tensor,
         beam_width: int,
         state: Optional[List[List[torch.Tensor]]] = None,
         hypothesis: Optional[Hypothesis] = None,
@@ -345,15 +345,18 @@ class RNNTBeamSearch(torch.nn.Module):
                     list of lists of tensors representing transcription network
                     internal state generated in current invocation.
         """
-        assert input.dim() == 2 or (
-            input.dim() == 3 and input.shape[0] == 1
-        ), "input must be of shape (T, D) or (1, T, D)"
-        if input.dim() == 2:
-            input = input.unsqueeze(0)
+        all_enc_out = []
+        for input, length in zip(all_inputs, all_lengths):
+            assert input.dim() == 2 or (
+                input.dim() == 3 and input.shape[0] == 1
+            ), "input must be of shape (T, D) or (1, T, D)"
+            if input.dim() == 2:
+                input = input.unsqueeze(0)
 
-        assert length.shape == () or length.shape == (1,), "length must be of shape () or (1,)"
-        if input.dim() == 0:
-            input = input.unsqueeze(0)
+            assert length.shape == () or length.shape == (1,), "length must be of shape () or (1,)"
+            if input.dim() == 0:
+                input = input.unsqueeze(0)
 
-        enc_out, _, state = self.model.transcribe_streaming(input, length, state)
-        return self._search(enc_out, hypothesis, beam_width), state
+            enc_out, _, state = self.model.transcribe_streaming(input, length, state)
+            all_enc_out.append(enc_out)
+        return self._search(torch.cat(all_enc_out, dim=1), hypothesis, beam_width), state

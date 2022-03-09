@@ -53,19 +53,26 @@ def run_eval_streaming(args):
     streaming_feature_extractor = bundle.get_streaming_feature_extractor()
     hop_length = bundle.hop_length
     num_samples_segment = bundle.segment_length * hop_length
-    num_samples_segment_right_context = num_samples_segment + bundle.right_context_length * hop_length
+    num_samples_right_context = bundle.right_context_length * hop_length
+    num_samples_segment_right_context = num_samples_segment + num_samples_right_context
+    segment_multiple = 5
 
     for idx in range(10):
         sample = dataset[idx]
         waveform = sample[0].squeeze()
         # Streaming decode.
         state, hypothesis = None, None
-        for idx in range(0, len(waveform), num_samples_segment):
-            segment = waveform[idx : idx + num_samples_segment_right_context]
-            segment = torch.nn.functional.pad(segment, (0, num_samples_segment_right_context - len(segment)))
-            with torch.no_grad():
+        for idx in range(0, len(waveform), num_samples_segment * segment_multiple):
+            all_features = []
+            all_lengths = []
+            for subidx in range(segment_multiple):
+                segment = waveform[idx + num_samples_segment * subidx : idx + num_samples_segment * (subidx + 1) + num_samples_right_context]
+                segment = torch.nn.functional.pad(segment, (0, num_samples_segment_right_context - len(segment)))
                 features, length = streaming_feature_extractor(segment)
-                hypos, state = decoder.infer(features, length, 10, state=state, hypothesis=hypothesis)
+                all_features.append(features)
+                all_lengths.append(length)
+            with torch.no_grad():
+                hypos, state = decoder.infer(all_features, all_lengths, 10, state=state, hypothesis=hypothesis)
             hypothesis = hypos[0]
             transcript = token_processor(hypothesis.tokens, lstrip=False)
             print(transcript, end="", flush=True)
