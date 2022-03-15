@@ -15,9 +15,36 @@ from common import (
     spectrogram_transform,
 )
 from pytorch_lightning import LightningModule
-from torchaudio.models import RNNTBeamSearch, emformer_rnnt_base
+from torchaudio.models import RNNTBeamSearch, emformer_rnnt_model
 
 from .dataset import MUSTC
+
+
+def emformer_rnnt(*, num_symbols, segment_length=16, right_context_length=4):
+    # Other parameters adopted from torchaudio.models.emformer_rnnt_base.
+    return emformer_rnnt_model(
+        input_dim=80,
+        encoding_dim=1024,
+        num_symbols=num_symbols,
+        segment_length=segment_length,
+        right_context_length=right_context_length,
+        time_reduction_input_dim=128,
+        time_reduction_stride=4,
+        transformer_num_heads=8,
+        transformer_ffn_dim=2048,
+        transformer_num_layers=20,
+        transformer_dropout=0.1,
+        transformer_activation="gelu",
+        transformer_left_context_length=30,
+        transformer_max_memory_size=0,
+        transformer_weight_init_scale_strategy="depthwise",
+        transformer_tanh_on_mem=True,
+        symbol_embedding_dim=512,
+        num_lstm_layers=3,
+        lstm_layer_norm=True,
+        lstm_layer_norm_epsilon=1e-3,
+        lstm_dropout=0.3,
+    )
 
 
 class CustomDataset(torch.utils.data.Dataset):
@@ -49,7 +76,7 @@ class MuSTCRNNTModule(LightningModule):
     ):
         super().__init__()
 
-        self.model = emformer_rnnt_base(num_symbols=501)
+        self.model = emformer_rnnt(num_symbols=501, segment_length=48, right_context_length=4)
         self.loss = torchaudio.transforms.RNNTLoss(reduction="mean", clamp=1.0)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=5e-4, betas=(0.9, 0.999), eps=1e-8)
         self.warmup_lr_scheduler = WarmupLR(self.optimizer, 10000)
